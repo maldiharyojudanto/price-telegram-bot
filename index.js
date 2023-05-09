@@ -1,28 +1,39 @@
-const PORT = 8000
-const axios = require('axios')
-const cheerio = require('cheerio')
-const express = require('express')
+import Binance from 'binance-api-node'
+import TelegramBot from 'node-telegram-bot-api'
 
-const app = express()
+// API connection
+const binanceClient = Binance.default({
+  apiKey: '###', // masukkan API key dari binance
+  apiSecret: '###', // masukkan API key dari binance
+})
+const token = '###' // masukkan API token telegram bot
+const bot = new TelegramBot(token, {polling: true})
 
-const url = 'https://45.12.2.25/'
+// tes API connection
+console.log(await binanceClient.ping())
+console.log(await binanceClient.time())
 
-axios(url)
-    .then(response => {
-        const html = response.data
-        //console.log(html)
-        const $ = cheerio.load(html)
-        const animes = []
+// ambil data BTCUSDT harga trading futures
+console.log(await binanceClient.futuresPrices({ symbol: 'BTCUSDT' }))
 
-        $('.bsux', html).each(function() {
-            const title = $(this).find('a').attr('title')
-            const url = $(this).find('a').attr('href')
-            animes.push({
-                title,
-                url
-            })
-        })
-        console.log(animes)
-    }).catch(err => console.log(err))
+// inputan "/p [teks apapun dari user]"
+bot.onText(/\/p (.+)/, (msg, match) => {
+  const chatId = msg.chat.id;
 
-app.listen(PORT, () => console.log('server running on PORT ${PORT}') )
+  bot.sendMessage(chatId, '_Permintaan sedang diproses 🐳_', { parse_mode: "Markdown" });
+
+  const coinName = match[1]; //ambil nama body text
+  var harga = []
+  
+  binanceClient.futuresPrices({ symbol: `${coinName}USDT`.toUpperCase() })
+    .then((futuresPrices) => {
+        var harga = Object.values(futuresPrices)
+        const konversiHarga = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', currencyDisplay: 'narrowSymbol'}).format(harga)
+
+        console.log(konversiHarga)
+        bot.sendMessage(chatId, `Harga ${coinName.toUpperCase()}/USDT adalah *${konversiHarga}*`, { parse_mode: "Markdown" })
+    })
+    .catch((err) =>
+        bot.sendMessage(chatId, `Gagal mendapatkan harga ${coinName.toUpperCase()}/USDT. ${err}`)
+    ) 
+});
