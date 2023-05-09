@@ -1,5 +1,5 @@
 # price-telegram-bot
-Get cryptocurrency price from Binance Futures
+Get cryptocurrency price from Binance Futures with NodeJS
 
 1. git clone https://github.com/maldiharyojudanto/price-telegram-bot.git
 2. npm install
